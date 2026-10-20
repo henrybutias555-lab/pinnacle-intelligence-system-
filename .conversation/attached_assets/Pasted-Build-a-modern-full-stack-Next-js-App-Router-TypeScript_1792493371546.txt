@@ -1,0 +1,36 @@
+Build a modern, full-stack Next.js (App Router, TypeScript, Tailwind CSS) web application called "Pinnacle Intelligence System (PIS)" for Pinnacle Estate Surveyors (PES). 
+
+### Core Tech Stack:
+- Framework: Next.js 14+ (App Router, TypeScript)
+- UI: Tailwind CSS, Lucide React Icons, Radix/Shadcn-style component patterns, Recharts (for analytics/charts)
+- Database & Auth Integration: Supabase (@supabase/supabase-js, @supabase/ssr)
+- AI & Parsing: OpenAI Node API (`openai`), `pdf-parse` (PDF extraction), `mammoth` (DOCX extraction)
+
+### Key Features to Implement:
+
+1. Application Layout & Navigation:
+   - Modern sidebar navigation with tabs:
+     * Dashboard (Overview & Analytics)
+     * Document Ingestion (Upload & AI Extraction)
+     * Valuation Database (Search & Filters)
+     * Construction Cost Data (Search & Filters)
+     * Housing Market Data (Search & Filters)
+     * Evidence Package Generator (Comparables & Commentary)
+     * User Management & Logs (Role-Based Access)
+
+2. Role-Based Access Control (RBAC):
+   - Support roles: Admin, Senior Surveyor, Junior Surveyor, Viewer.
+   - Restrict action buttons (e.g., Viewer can only view/export, Junior Surveyor can upload/edit pending, Senior/Admin can confirm and manage users).
+
+3. Document Ingestion Module (Human-In-The-Loop AI Pipeline):
+   - Drag-and-drop file uploader accepting PDF and Word (.docx) files.
+   - Select report category: "Valuation Report", "Construction Cost Data", or "Housing Data".
+   - API Route (`/api/ingest`): Parses file text using `pdf-parse` or `mammoth`, sends text to OpenAI (`gpt-4o`) with structured JSON schema output to extract:
+     * For Valuation: location, property type, capital value, rental value, yield %, valuation method, assumptions, comparable evidence notes.
+     * For Construction Cost: location, property type, cost per m²/sqft, breakdown (structure, finishes, external works, preliminaries), cost indices.
+     * For Housing Data: area, residential pricing trends, supply/demand indicators, stock details.
+   - Review Screen UI: Split-screen interface showing extracted fields pre-filled into editable form fields for human verification before saving to database.
+
+4. Data Search & Filtering UI:
+   - Filterable tables for Valuation, Cost, and Housing records.
+   - Filters: Location search, Property Type, Date range

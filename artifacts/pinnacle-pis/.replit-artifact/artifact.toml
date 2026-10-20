@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Pinnacle Intelligence System"
+description = "A property intelligence workspace for Pinnacle Estate Surveyors to review extracted documents, manage valuation and market evidence, and generate comparable-backed reports."
+version = "1.0.0"
+id = "artifacts/pinnacle-pis"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19736
+
+[services.development]
+run = "pnpm --filter @workspace/pinnacle-pis run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pinnacle-pis", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/pinnacle-pis/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19736"
+BASE_PATH = "/"
