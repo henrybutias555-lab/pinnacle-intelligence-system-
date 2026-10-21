@@ -18,3 +18,8 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+PIS_INITIAL_ADMIN_EMAIL = "franklinboakye9@gmail.com"

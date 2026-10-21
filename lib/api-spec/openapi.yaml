@@ -3,13 +3,27 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Pinnacle Intelligence System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Supabase-backed authentication and user session.
+  - name: dashboard
+    description: Intelligence overview and activity.
+  - name: records
+    description: Valuation, construction cost, and housing records.
+  - name: documents
+    description: Document ingestion and human review.
+  - name: users
+    description: Team access and role management.
+  - name: evidence
+    description: Comparable evidence packages.
+  - name: storage
+    description: Private source-document uploads.
 paths:
   /healthz:
     get:
@@ -24,6 +38,474 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/signup:
+    post:
+      operationId: signUp
+      tags: [auth]
+      summary: Create a surveyor account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpInput"
+      responses:
+        "201":
+          description: Account created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid account details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /auth/signin:
+    post:
+      operationId: signIn
+      tags: [auth]
+      summary: Sign in to PIS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInInput"
+      responses:
+        "200":
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /auth/signout:
+    post:
+      operationId: signOut
+      tags: [auth]
+      summary: Sign out of PIS
+      responses:
+        "204":
+          description: Signed out.
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Return the signed-in user and role
+      responses:
+        "200":
+          description: Current user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Sign-in required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard totals and recent activity
+      responses:
+        "200":
+          description: Dashboard overview.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardResponse"
+  /records:
+    get:
+      operationId: listRecords
+      tags: [records]
+      summary: Search and filter intelligence records
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/RecordCategory"
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: propertyType
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/RecordStatus"
+      responses:
+        "200":
+          description: Matching records.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IntelligenceRecord"
+    post:
+      operationId: createRecord
+      tags: [records]
+      summary: Create a pending intelligence record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordInput"
+      responses:
+        "201":
+          description: Record created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntelligenceRecord"
+  /records/{recordId}:
+    get:
+      operationId: getRecord
+      tags: [records]
+      summary: Get one intelligence record
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Record detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntelligenceRecord"
+        "404":
+          description: Record not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    patch:
+      operationId: updateRecord
+      tags: [records]
+      summary: Edit a pending record
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordUpdate"
+      responses:
+        "200":
+          description: Updated record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntelligenceRecord"
+  /records/{recordId}/confirm:
+    post:
+      operationId: confirmRecord
+      tags: [records]
+      summary: Confirm a record as verified evidence
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Confirmed record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntelligenceRecord"
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List uploaded documents for review
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/DocumentStatus"
+      responses:
+        "200":
+          description: Documents.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IntakeDocument"
+  /ingest:
+    post:
+      operationId: ingestDocument
+      tags: [documents]
+      summary: Extract structured data from an uploaded PDF or DOCX
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestInput"
+      responses:
+        "201":
+          description: Document parsed and queued for human review.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntakeDocument"
+        "400":
+          description: Unsupported file or invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /documents/{documentId}:
+    patch:
+      operationId: updateDocumentReview
+      tags: [documents]
+      summary: Save edits to extracted document fields
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentReviewUpdate"
+      responses:
+        "200":
+          description: Updated review document.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntakeDocument"
+  /documents/{documentId}/approve:
+    post:
+      operationId: approveDocument
+      tags: [documents]
+      summary: Confirm reviewed fields and create a record
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordInput"
+      responses:
+        "201":
+          description: Verified record created from the document.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntelligenceRecord"
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List team accounts
+      responses:
+        "200":
+          description: Team users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserProfile"
+    post:
+      operationId: inviteUser
+      tags: [users]
+      summary: Invite a team member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteUserInput"
+      responses:
+        "201":
+          description: Invitation sent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+  /users/{userId}/role:
+    patch:
+      operationId: updateUserRole
+      tags: [users]
+      summary: Change a team member's role
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleUpdate"
+      responses:
+        "200":
+          description: Updated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+  /activity:
+    get:
+      operationId: listActivity
+      tags: [dashboard]
+      summary: List recent audit activity
+      responses:
+        "200":
+          description: Recent activity.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEntry"
+  /evidence-packages:
+    get:
+      operationId: listEvidencePackages
+      tags: [evidence]
+      summary: List generated evidence packages
+      responses:
+        "200":
+          description: Evidence packages.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EvidencePackage"
+    post:
+      operationId: createEvidencePackage
+      tags: [evidence]
+      summary: Generate and save comparable commentary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvidencePackageInput"
+      responses:
+        "201":
+          description: Generated evidence package.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvidencePackage"
+  /evidence-packages/{packageId}:
+    get:
+      operationId: getEvidencePackage
+      tags: [evidence]
+      summary: Get a generated evidence package
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Evidence package.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvidencePackage"
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Create a private upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Upload URL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+  /storage/objects/{objectPath}:
+    get:
+      operationId: getStorageObject
+      tags: [storage]
+      summary: Serve a private source document
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Private document content.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Sign-in required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Document not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +515,291 @@ components:
           type: string
       required:
         - status
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    RecordCategory:
+      type: string
+      enum: [valuation, construction, housing]
+    RecordStatus:
+      type: string
+      enum: [pending, confirmed]
+    DocumentStatus:
+      type: string
+      enum: [pending_review, approved]
+    UserRole:
+      type: string
+      enum: [Admin, Senior Surveyor, Junior Surveyor, Viewer]
+    SignUpInput:
+      type: object
+      required: [email, password, fullName]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        fullName:
+          type: string
+          minLength: 1
+    SignInInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+    AuthResponse:
+      type: object
+      required: [user, emailConfirmationRequired]
+      properties:
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        emailConfirmationRequired:
+          type: boolean
+    UserProfile:
+      type: object
+      required: [id, email, fullName, role, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        createdAt:
+          type: string
+          format: date-time
+        lastSignInAt:
+          type: ["string", "null"]
+          format: date-time
+    DashboardResponse:
+      type: object
+      required: [valuations, constructionCosts, housingRecords, pendingReviews, confirmedRecords, recentActivity]
+      properties:
+        valuations:
+          type: integer
+        constructionCosts:
+          type: integer
+        housingRecords:
+          type: integer
+        pendingReviews:
+          type: integer
+        confirmedRecords:
+          type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityEntry"
+    IntelligenceRecord:
+      type: object
+      required: [id, category, location, observedAt, status, details, createdAt]
+      properties:
+        id:
+          type: integer
+        category:
+          $ref: "#/components/schemas/RecordCategory"
+        title:
+          type: ["string", "null"]
+        location:
+          type: string
+        propertyType:
+          type: ["string", "null"]
+        observedAt:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/RecordStatus"
+        sourceName:
+          type: ["string", "null"]
+        details:
+          type: object
+          additionalProperties: true
+        createdBy:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+    RecordInput:
+      type: object
+      required: [category, location, details]
+      properties:
+        category:
+          $ref: "#/components/schemas/RecordCategory"
+        title:
+          type: string
+        location:
+          type: string
+          minLength: 1
+        propertyType:
+          type: string
+        observedAt:
+          type: string
+          format: date-time
+        sourceName:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    RecordUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        location:
+          type: string
+        propertyType:
+          type: string
+        observedAt:
+          type: string
+          format: date-time
+        sourceName:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    IntakeDocument:
+      type: object
+      required: [id, fileName, objectPath, category, status, extractedData, createdAt]
+      properties:
+        id:
+          type: integer
+        fileName:
+          type: string
+        objectPath:
+          type: string
+        category:
+          $ref: "#/components/schemas/RecordCategory"
+        status:
+          $ref: "#/components/schemas/DocumentStatus"
+        extractedData:
+          type: object
+          additionalProperties: true
+        uploadedBy:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+    IngestInput:
+      type: object
+      required: [fileName, objectPath, category]
+      properties:
+        fileName:
+          type: string
+          minLength: 1
+        objectPath:
+          type: string
+          minLength: 1
+        category:
+          $ref: "#/components/schemas/RecordCategory"
+    DocumentReviewUpdate:
+      type: object
+      required: [extractedData]
+      properties:
+        extractedData:
+          type: object
+          additionalProperties: true
+    InviteUserInput:
+      type: object
+      required: [email, role]
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/UserRole"
+    UserRoleUpdate:
+      type: object
+      required: [role]
+      properties:
+        role:
+          $ref: "#/components/schemas/UserRole"
+    ActivityEntry:
+      type: object
+      required: [id, action, description, createdAt]
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+        entityType:
+          type: ["string", "null"]
+        description:
+          type: string
+        actor:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+    EvidencePackage:
+      type: object
+      required: [id, title, subjectProperty, recordIds, commentary, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subjectProperty:
+          type: string
+        recordIds:
+          type: array
+          items:
+            type: integer
+        commentary:
+          type: string
+        createdBy:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+    EvidencePackageInput:
+      type: object
+      required: [title, subjectProperty, recordIds]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        subjectProperty:
+          type: string
+          minLength: 1
+        recordIds:
+          type: array
+          minItems: 1
+          items:
+            type: integer
+        commentary:
+          type: string
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        size:
+          type: integer
+          minimum: 1
+        contentType:
+          type: string
+          minLength: 1
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+        objectPath:
+          type: string
 
