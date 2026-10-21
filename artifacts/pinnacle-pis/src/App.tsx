@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import {
+import { supabase } from './lib/supabase';
   Activity, ArrowDownToLine, ArrowRight, BadgeCheck, Building2,
   Check, ChevronDown, CircleHelp, ClipboardCheck, Clock3, FileCheck2, FileText,
   Filter, FolderOpen, Home, KeyRound, Layers3, LogOut, Menu, Plus, Search,
