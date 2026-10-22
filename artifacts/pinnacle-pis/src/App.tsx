@@ -12,6 +12,25 @@ import { supabase } from './lib/supabase';
   Shield, Sparkles, Upload, Users, X,
 } from 'lucide-react';
 import {
+  import {
+  Activity,
+  ArrowDownToLine,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  CircleHelp,
+  Clipboard,
+  Filter,
+  FolderOpen,
+  Home,
+  KeyRound,
+  Layers,
+  Shield,
+  Sparkles,
+  Upload,
+  Users,
+  X,
+} from 'lucide-react';
   getGetCurrentUserQueryKey, getGetDashboardQueryKey, getGetRecordQueryKey, getGetEvidencePackageQueryKey, getListRecordsQueryKey,
   getListDocumentsQueryKey, getListUsersQueryKey, getListActivityQueryKey,
   getListEvidencePackagesQueryKey, useApproveDocument, useConfirmRecord,
