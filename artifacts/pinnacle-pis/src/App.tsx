@@ -6,12 +6,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { supabase } from './lib/supabase';
-  Activity, ArrowDownToLine, ArrowRight, BadgeCheck, Building2,
-  Check, ChevronDown, CircleHelp, ClipboardCheck, Clock3, FileCheck2, FileText,
-  Filter, FolderOpen, Home, KeyRound, Layers3, LogOut, Menu, Plus, Search,
-  Shield, Sparkles, Upload, Users, X,
-} from 'lucide-react';
-import {
   import {
   Activity,
   ArrowDownToLine,
@@ -31,16 +25,13 @@ import {
   Users,
   X,
 } from 'lucide-react';
-  getGetCurrentUserQueryKey, getGetDashboardQueryKey, getGetRecordQueryKey, getGetEvidencePackageQueryKey, getListRecordsQueryKey,
-  getListDocumentsQueryKey, getListUsersQueryKey, getListActivityQueryKey,
-  getListEvidencePackagesQueryKey, useApproveDocument, useConfirmRecord,
-  useCreateEvidencePackage, useCreateRecord, useGetCurrentUser, useGetDashboard, useGetEvidencePackage, useGetRecord, useIngestDocument,
-  useInviteUser, useListActivity, useListDocuments, useListEvidencePackages,
-  useListRecords, useListUsers, useRequestUploadUrl, useSignIn, useSignOut,
-  useSignUp, useUpdateDocumentReview, useUpdateRecord, useUpdateUserRole,
-  type ActivityEntry, type EvidencePackage, type IntelligenceRecord,
-  type RecordCategory, type UserProfile, type UserRole,
+  import {
+  type ActivityEntry,
+  type EvidencePackage,
+  type RecordCategory,
+  type UserProfile,
 } from '@workspace/api-client-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,7 +40,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ErrorBoundary } from '@/components/error-boundary';
 import NotFound from '@/components/not-found-view';
-
 const sections = [
   { label: 'Workspace', items: [
     { label: 'Overview', path: '/dashboard', icon: Home },
