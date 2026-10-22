@@ -69,6 +69,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.55.0",
     "next": "^16.4.2"
   }
 }
