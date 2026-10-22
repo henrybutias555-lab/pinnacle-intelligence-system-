@@ -4,10 +4,11 @@ A property-intelligence workspace for Pinnacle Estate Surveyors to ingest report
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm --filter @workspace/pinnacle-pis run dev` — run the PIS web app
+- `pnpm --filter @workspace/api-server run dev` — run the API server
+- `pnpm --filter @workspace/pinnacle-pis run dev` — run the Next.js web app
 - `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
+- `pnpm --filter @workspace/pinnacle-pis run build` — build the Next.js app
+- `pnpm --filter @workspace/api-server run build` — bundle the API server
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — apply the PIS schema to the configured Supabase database
 - `pnpm --filter @workspace/db run secure-pis` — enable row-level security on PIS tables
@@ -16,7 +17,7 @@ A property-intelligence workspace for Pinnacle Estate Surveyors to ingest report
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- Web: React, Vite, Tailwind CSS, React Query, Wouter, Recharts
+- Web: Next.js App Router, React, Tailwind CSS, React Query, Recharts
 - API: Express 5
 - DB and auth: Supabase PostgreSQL + Supabase Auth, accessed server-side with Drizzle and `@supabase/supabase-js`
 - AI extraction and evidence commentary: OpenAI Node SDK
@@ -27,7 +28,8 @@ A property-intelligence workspace for Pinnacle Estate Surveyors to ingest report
 
 ## Where things live
 
-- `artifacts/pinnacle-pis/src` — PIS web application
+- `artifacts/pinnacle-pis/app` — Next.js App Router layout and route entry points
+- `artifacts/pinnacle-pis/src` — PIS client application and UI components
 - `artifacts/api-server/src/routes` — authenticated PIS API routes
 - `lib/api-spec/openapi.yaml` — API contract source of truth
 - `lib/db/src/schema` — Drizzle schema for PIS records, documents, evidence packages, users, and audit activity
@@ -58,6 +60,7 @@ A property-intelligence workspace for Pinnacle Estate Surveyors to ingest report
 ## Gotchas
 
 - The API server requires the Supabase/OpenAI secrets and App Storage configuration at startup.
+- The Next.js web service runs as a Node process in production; publish it with an Autoscale deployment, not a Static deployment.
 - Run API codegen after any OpenAPI changes and before compiling routes that use generated Zod schemas.
 - Apply schema changes to the configured external Supabase database with `pnpm --filter @workspace/db run push`; the Replit-managed database is not the PIS database.
 - Keep the initial Admin email configured before the first account is created.

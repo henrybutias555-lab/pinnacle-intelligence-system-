@@ -4,6 +4,8 @@
 dist
 tmp
 out-tsc
+**/.next/
+artifacts/pinnacle-pis/out/
 *.tsbuildinfo
 .expo
 .expo-shared

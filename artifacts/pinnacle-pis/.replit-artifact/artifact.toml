@@ -14,14 +14,21 @@ localPort = 19736
 [services.development]
 run = "pnpm --filter @workspace/pinnacle-pis run dev"
 
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/pinnacle-pis", "run", "build" ]
-serve = "static"
-publicDir = "artifacts/pinnacle-pis/dist/public"
+[services.production.build]
+args = [ "pnpm", "--filter", "@workspace/pinnacle-pis", "run", "build" ]
 
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = [ "pnpm", "--filter", "@workspace/pinnacle-pis", "run", "start" ]
+
+[services.production.run.env]
+PORT = "19736"
+NODE_ENV = "production"
+
+[services.production.health.startup]
+path = "/"
 
 [services.env]
 PORT = "19736"

@@ -1,5 +1,9 @@
+'use client';
+
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import {
   Activity, ArrowDownToLine, ArrowRight, BadgeCheck, Building2,
@@ -18,19 +22,15 @@ import {
   type ActivityEntry, type EvidencePackage, type IntelligenceRecord,
   type RecordCategory, type UserProfile, type UserRole,
 } from '@workspace/api-client-react';
-import { Link, Route, Switch, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Toaster } from '@/components/ui/toaster';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/error-boundary';
-import NotFound from '@/pages/not-found';
+import NotFound from '@/components/not-found-view';
 
-const queryClient = new QueryClient();
 const sections = [
   { label: 'Workspace', items: [
     { label: 'Overview', path: '/dashboard', icon: Home },
@@ -64,24 +64,46 @@ function downloadText(filename: string, content: string, mime = 'text/plain') {
 }
 function csvCell(value: unknown) { return `"${String(value ?? '').replaceAll('"', '""')}"`; }
 
-function FormInput({ name, label, type = 'text', placeholder }: { name: string; label: string; type?: string; placeholder?: string }) {
+function FormInput({ name, label, type = 'text', placeholder, autoComplete }: { name: string; label: string; type?: string; placeholder?: string; autoComplete?: string }) {
   return <FormField name={name} render={({ field }) => <FormItem>
-    <FormLabel>{label}</FormLabel><FormControl><Input {...field} type={type} placeholder={placeholder} data-testid={`input-${name}`} /></FormControl><FormMessage />
+    <FormLabel>{label}</FormLabel><FormControl><Input {...field} type={type} placeholder={placeholder} autoComplete={autoComplete} data-testid={`input-${name}`} /></FormControl><FormMessage />
   </FormItem>} />;
 }
 
 function AuthPage({ signup = false }: { signup?: boolean }) {
-  const [, setLocation] = useLocation();
+  const router = useRouter();
   const client = useQueryClient();
   const signIn = useSignIn();
   const signUp = useSignUp();
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
   const form = useForm({ defaultValues: signup ? { fullName: '', email: '', password: '' } : { email: '', password: '' } });
   const busy = signup ? signUp.isPending : signIn.isPending;
   const error = signup ? signUp.error : signIn.error;
   const submit = form.handleSubmit(values => {
-    const onSuccess = async () => { await client.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() }); setLocation('/dashboard'); };
-    if (signup) signUp.mutate({ data: values as { fullName: string; email: string; password: string } }, { onSuccess });
-    else signIn.mutate({ data: values as { email: string; password: string } }, { onSuccess });
+    setConfirmationEmail(null);
+    const finishSignIn = async () => {
+      await client.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+      router.push('/dashboard');
+    };
+    if (signup) {
+      signUp.mutate(
+        { data: values as { fullName: string; email: string; password: string } },
+        {
+          onSuccess: async response => {
+            if (response.emailConfirmationRequired) {
+              setConfirmationEmail(values.email);
+              return;
+            }
+            await finishSignIn();
+          },
+        },
+      );
+    } else {
+      signIn.mutate(
+        { data: values as { email: string; password: string } },
+        { onSuccess: finishSignIn },
+      );
+    }
   });
   return <main className="min-h-[100dvh] grid lg:grid-cols-[1fr_1fr] bg-background">
     <section className="hidden lg:flex flex-col justify-between bg-sidebar text-sidebar-foreground p-12 xl:p-16 relative overflow-hidden">
@@ -109,10 +131,11 @@ function AuthPage({ signup = false }: { signup?: boolean }) {
         <h2 className="pis-brand mt-3 text-4xl font-semibold">{signup ? 'Create your account' : 'Welcome back'}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{signup ? 'Start building a traceable evidence practice.' : 'Sign in to continue your survey work.'}</p>
         <Form {...form}><form onSubmit={submit} className="mt-8 space-y-5" data-testid={signup ? 'form-sign-up' : 'form-sign-in'}>
-          {signup && <FormInput name="fullName" label="Full name" placeholder="e.g. Amara Okafor" />}
-          <FormInput name="email" label="Work email" type="email" placeholder="you@pinnacle.co.uk" />
-          <FormInput name="password" label="Password" type="password" placeholder="At least 8 characters" />
+          {signup && <FormInput name="fullName" label="Full name" placeholder="e.g. Amara Okafor" autoComplete="name" />}
+          <FormInput name="email" label="Work email" type="email" placeholder="you@pinnacle.co.uk" autoComplete="email" />
+          <FormInput name="password" label="Password" type="password" placeholder="At least 8 characters" autoComplete={signup ? 'new-password' : 'current-password'} />
           {error && <p role="alert" data-testid="status-auth-error" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{displayError(error)}</p>}
+          {confirmationEmail && <p role="status" data-testid="status-email-confirmation" className="rounded-lg bg-primary/10 px-3 py-2 text-sm text-foreground">Check {confirmationEmail} for the confirmation link, then sign in to continue.</p>}
           <Button className="w-full h-11" disabled={busy} type="submit" data-testid="button-auth-submit">{busy ? 'Please wait…' : signup ? 'Create account' : 'Sign in'}<ArrowRight size={16} className="ml-2"/></Button>
         </form></Form>
         <p className="mt-7 text-center text-sm text-muted-foreground">{signup ? 'Already have access?' : 'New to Pinnacle Intelligence?'}{' '}
@@ -127,7 +150,7 @@ function AuthPage({ signup = false }: { signup?: boolean }) {
 function Sidebar({ user, active, close }: { user: UserProfile; active: string; close: () => void }) {
   const signOut = useSignOut();
   const client = useQueryClient();
-  const [, setLocation] = useLocation();
+  const router = useRouter();
   return <aside className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
     <div className="flex h-[76px] items-center gap-3 border-b border-sidebar-border px-6">
       <span className="grid size-9 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"><Building2 size={19}/></span>
@@ -148,14 +171,14 @@ function Sidebar({ user, active, close }: { user: UserProfile; active: string; c
     </nav>
     <div className="border-t border-sidebar-border p-4">
       <p className="mb-3 flex items-center gap-2 px-2 text-[11px] text-sidebar-foreground/50"><CircleHelp size={14}/> Need help? Contact your admin</p>
-      <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground" data-testid="button-sign-out" disabled={signOut.isPending} onClick={() => signOut.mutate(undefined, { onSuccess: () => { client.setQueryData(getGetCurrentUserQueryKey(), null); setLocation('/sign-in'); } })}><LogOut size={16} className="mr-3"/> Sign out</Button>
+      <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground" data-testid="button-sign-out" disabled={signOut.isPending} onClick={() => signOut.mutate(undefined, { onSuccess: () => { client.setQueryData(getGetCurrentUserQueryKey(), null); router.push('/sign-in'); } })}><LogOut size={16} className="mr-3"/> Sign out</Button>
     </div>
   </aside>;
 }
 
 function AppShell({ children, user, active }: { children: ReactNode; user: UserProfile; active: string }) {
   const [open, setOpen] = useState(false);
-  const [location] = useLocation();
+  const location = usePathname() ?? '/';
   return <div className="pis-app min-h-[100dvh] md:grid md:grid-cols-[250px_minmax(0,1fr)]">
     <div className="hidden md:block"><div className="sticky top-0 h-[100dvh]"><Sidebar user={user} active={active} close={() => setOpen(false)}/></div></div>
     {open && <div className="fixed inset-0 z-50 md:hidden"><button aria-label="Close navigation" className="absolute inset-0 bg-foreground/30" onClick={() => setOpen(false)} data-testid="button-close-menu"/><div className="relative h-full w-[280px]"><Sidebar user={user} active={active} close={() => setOpen(false)}/></div></div>}
@@ -526,8 +549,7 @@ function TeamPage({ user }: { user: UserProfile }) {
   </div>;
 }
 
-function AuthGate() {
-  const [location] = useLocation();
+function AuthGate({ location }: { location: string }) {
   const current = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey(), retry: false } });
   if (location === '/sign-in' || location === '/sign-up') return current.data ? <RedirectDashboard/> : <AuthPage signup={location === '/sign-up'}/>;
   if (current.isLoading) return <div className="min-h-[100dvh] bg-background p-8"><Skeleton className="h-14 w-full"/><Skeleton className="mt-8 h-64 w-full"/></div>;
@@ -547,27 +569,13 @@ function AuthGate() {
   return <AppShell user={user} active={location === '/' ? '/dashboard' : location}>{content}</AppShell>;
 }
 function RedirectDashboard() {
-  const [, setLocation] = useLocation();
-  useEffect(() => { setLocation('/dashboard'); }, [setLocation]);
+  const router = useRouter();
+  useEffect(() => { router.replace('/dashboard'); }, [router]);
   return <div className="min-h-[100dvh] bg-background p-8"><Skeleton className="h-16 w-full"/></div>;
 }
 
-function Router() {
-  return <ErrorBoundary><Switch>
-    <Route path="/sign-in"><AuthGate/></Route>
-    <Route path="/sign-up"><AuthGate/></Route>
-    <Route path="/"><AuthGate/></Route>
-    <Route path="/dashboard"><AuthGate/></Route>
-    <Route path="/ingestion"><AuthGate/></Route>
-    <Route path="/valuations"><AuthGate/></Route>
-    <Route path="/construction-costs"><AuthGate/></Route>
-    <Route path="/housing"><AuthGate/></Route>
-    <Route path="/evidence"><AuthGate/></Route>
-    <Route path="/team"><AuthGate/></Route>
-    <Route component={NotFound}/>
-  </Switch></ErrorBoundary>;
-}
 function App() {
-  return <QueryClientProvider client={queryClient}><TooltipProvider><Router/><Toaster/></TooltipProvider></QueryClientProvider>;
+  const location = usePathname() ?? '/';
+  return <ErrorBoundary><AuthGate location={location}/></ErrorBoundary>;
 }
 export default App;
